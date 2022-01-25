@@ -1,0 +1,5 @@
+/*
+!.gitignore
+!pythonInferencePCM/
+**__pycache__**
+**/.pydev*/**
