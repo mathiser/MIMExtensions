@@ -10,6 +10,7 @@ import shutil
 import time
 import traceback
 from numpy import dtype
+from multiprocessing.pool import ThreadPool
 
 def get_mask_integers(mask_name):
     d = {
@@ -49,18 +50,14 @@ def save_image_data_to_dir(image: XMimImage, dir, suffix) -> str:
     sitk.WriteImage(img, path)
     return path    
 
-def save_contour_data_to_dir(contour: XMimContour, dir, suffix, logger) -> str:
-    try:
-        arr = contour.getData().copyToNPArray()
-        logger.info("{} - {}".format(suffix, np.unique(arr)))
-        img = sitk.GetImageFromArray(contour.getData().copyToNPArray())
-        img.SetSpacing(contour.getNoxelSizeInMm())
-        path = os.path.join(dir, "tmp_{}.nii.gz".format(suffix))
-        sitk.WriteImage(img, path)
-        return path    
-    except Exception as e:
-        logger.exception(e)
-
+def save_contour_data_to_dir(contour: XMimContour, dir, suffix) -> str:
+    arr = contour.getData().copyToNPArray()
+    img = sitk.GetImageFromArray(arr)
+    img.SetSpacing(contour.getNoxelSizeInMm())
+    path = os.path.join(dir, "tmp_{}.nii.gz".format(suffix))
+    sitk.WriteImage(img, path)
+    return path    
+    
 @mim_extension_entrypoint(name = "00_inference_server_pcm",
                           author = "Mathis Rasmussen",
                           description = "Runs deep learning inference with one input modality",
@@ -95,14 +92,12 @@ def entrypoint(session : XMimSession,
         input_dir = tempfile.mkdtemp()
         
         ## Pack ct and the three contours to inputzip with appropriate naming for model.
-        counter = 0
-        logger.info(save_image_data_to_dir(ct, input_dir, str(10000+counter)[1:]))
-        counter += 1
+        save_image_data_to_dir(ct, input_dir, "0000")
         
         ## Same for PCMs
         for i, c in enumerate([pcm_low, pcm_mid, pcm_up]):
-            logger.info(save_contour_data_to_dir(c, input_dir, str(10000+counter)[1:], logger))
-            counter += 1
+            logger.info(save_contour_data_to_dir(c, input_dir, str(10001+i)[1:]))
+
 
         ## ... zip the folder
         with tempfile.TemporaryFile() as tmp_file:
