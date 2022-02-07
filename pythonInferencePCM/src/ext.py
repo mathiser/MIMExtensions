@@ -13,6 +13,7 @@ from numpy import dtype
 from multiprocessing.pool import ThreadPool
 from timeit import default_timer as timer
 from datetime import timedelta
+import json
 
 def get_mask_integers(mask_name):
     d = {
@@ -35,23 +36,20 @@ def zip_to_np_array(zip_path, logger) -> np.array:
     
         ## Loop through and find nifti-file
         for f in os.listdir(tmp_dir):
-            if f.endswith(".nii.gz"):
+            if f.endswith(".npy"):
                 ## Parse to sitk image
                 logger.info("opening {}".format(os.path.join(tmp_dir, f)))
-                img = sitk.ReadImage(os.path.join(tmp_dir, f))
-                arr = sitk.GetArrayFromImage(img)
-                ## Return array
-                return arr 
+                return np.load(os.path.join(tmp_dir, f)) 
         else:
             raise Exception("No nifti in output")
     
-def save_volume_to_dir(array, spacing, dir, suffix) -> str:
-    img = sitk.GetImageFromArray(array)
-    img.SetSpacing(spacing)
-    path =  os.path.join(dir, "tmp_{}.nii.gz".format(suffix))
-    sitk.WriteImage(img, path, useCompression=True)
-    return path    
+def save_volumes_to_dir(arrays: dict, meta, dir):
+    img_path =  os.path.join(dir, "arrays")
+    np.savez_compressed(img_path, **arrays)
 
+    with open(img_path + ".json", "w") as f:
+        f.write(json.dumps(meta))
+        
 @mim_extension_entrypoint(name = "00_inference_server_pcm",
                           author = "Mathis Rasmussen",
                           description = "Runs deep learning inference with one input modality",
@@ -90,23 +88,21 @@ def entrypoint(session : XMimSession,
         #save_image_data_to_dir(ct, input_dir, "0000")
         
         ## Same for PCMs
-        tp = ThreadPool(4)
-        tasks = []
-        tasks.append((ct.getRawData().copyToNPArray(),
-                                             ct.getNoxelSizeInMm(),
-                                             input_dir,
-                                             "0000"))
+        t01 = timer()
+        arrays = {}
+        arrays["0000"] = ct.getRawData().copyToNPArray()
+        arrays["0001"] = pcm_low.getData().copyToNPArray()              
+        arrays["0002"] = pcm_mid.getData().copyToNPArray()              
+        arrays["0003"] = pcm_up.getData().copyToNPArray()
+        meta = {}
+        meta["spacing"] = ct.getNoxelSizeInMm();
+        meta["shape"] = arrays["0000"].shape
+           
+        save_volumes_to_dir(arrays, meta, input_dir)
         
-        for i, c in enumerate([pcm_low, pcm_mid, pcm_up]):
-            tasks.append((c.getData().copyToNPArray(),
-                                            c.getNoxelSizeInMm(),
-                                            input_dir,
-                                            str(10001+i)[1:]))
-        tp.starmap(save_volume_to_dir, tasks)
-        tp.close()
-        tp.join()
         t1 = timer()
-        logger.info(f"Finished extracting CT and PCMs: {timedelta(seconds=t1-t0)}")
+        logger.info(f"Finished extracting CT and PCMs: {timedelta(seconds=t1-t01)}")
+        
         ## ... zip the folder
         with tempfile.TemporaryFile() as tmp_file:
             with zipfile.ZipFile(tmp_file, "w", zipfile.ZIP_STORED) as z:
