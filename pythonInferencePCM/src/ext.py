@@ -11,6 +11,8 @@ import time
 import traceback
 from numpy import dtype
 from multiprocessing.pool import ThreadPool
+from timeit import default_timer as timer
+from datetime import timedelta
 
 def get_mask_integers(mask_name):
     d = {
@@ -43,21 +45,13 @@ def zip_to_np_array(zip_path, logger) -> np.array:
         else:
             raise Exception("No nifti in output")
     
-def save_image_data_to_dir(image: XMimImage, dir, suffix) -> str:
-    img = sitk.GetImageFromArray(image.getRawData().copyToNPArray())
-    img.SetSpacing(image.getNoxelSizeInMm())
+def save_volume_to_dir(array, spacing, dir, suffix) -> str:
+    img = sitk.GetImageFromArray(array)
+    img.SetSpacing(spacing)
     path =  os.path.join(dir, "tmp_{}.nii.gz".format(suffix))
-    sitk.WriteImage(img, path)
+    sitk.WriteImage(img, path, useCompression=True)
     return path    
 
-def save_contour_data_to_dir(contour: XMimContour, dir, suffix) -> str:
-    arr = contour.getData().copyToNPArray()
-    img = sitk.GetImageFromArray(arr)
-    img.SetSpacing(contour.getNoxelSizeInMm())
-    path = os.path.join(dir, "tmp_{}.nii.gz".format(suffix))
-    sitk.WriteImage(img, path)
-    return path    
-    
 @mim_extension_entrypoint(name = "00_inference_server_pcm",
                           author = "Mathis Rasmussen",
                           description = "Runs deep learning inference with one input modality",
@@ -65,12 +59,13 @@ def save_contour_data_to_dir(contour: XMimContour, dir, suffix) -> str:
                           institution = "DCPT",
                           version = 1.)
 def entrypoint(session : XMimSession,
-               ct : XMimImage) -> XMimSeriesView:
+               ct : XMimImage):# -> XMimSeriesView:
     
     logger = session.createLogger()
     logger.info("Starting extension...")
+    t0 = timer()
     try:
-        model_ids = [4]
+        model_ids = [2]
         ## Extract PCMs:
         for c in ct.getContours():
             if c.getInfo().getName() == "PCM_Low":
@@ -92,20 +87,36 @@ def entrypoint(session : XMimSession,
         input_dir = tempfile.mkdtemp()
         
         ## Pack ct and the three contours to inputzip with appropriate naming for model.
-        save_image_data_to_dir(ct, input_dir, "0000")
+        #save_image_data_to_dir(ct, input_dir, "0000")
         
         ## Same for PCMs
+        tp = ThreadPool(4)
+        tasks = []
+        tasks.append((ct.getRawData().copyToNPArray(),
+                                             ct.getNoxelSizeInMm(),
+                                             input_dir,
+                                             "0000"))
+        
         for i, c in enumerate([pcm_low, pcm_mid, pcm_up]):
-            logger.info(save_contour_data_to_dir(c, input_dir, str(10001+i)[1:]))
-
-
+            tasks.append((c.getData().copyToNPArray(),
+                                            c.getNoxelSizeInMm(),
+                                            input_dir,
+                                            str(10001+i)[1:]))
+        tp.starmap(save_volume_to_dir, tasks)
+        tp.close()
+        tp.join()
+        t1 = timer()
+        logger.info(f"Finished extracting CT and PCMs: {timedelta(seconds=t1-t0)}")
         ## ... zip the folder
         with tempfile.TemporaryFile() as tmp_file:
-            with zipfile.ZipFile(tmp_file, "w", zipfile.ZIP_DEFLATED) as z:
+            with zipfile.ZipFile(tmp_file, "w", zipfile.ZIP_STORED) as z:
                 for file in os.listdir(input_dir):
                     z.write(os.path.join(input_dir, file), arcname=file)
             
             tmp_file.seek(0)
+            
+            t2 = timer()
+            logger.info(f"Finished zipping: {timedelta(seconds=t2-t1)}")
             
             ## ... and post to inference_server
             res = requests.post("https://omen.onerm.dk/api/tasks/",
@@ -116,7 +127,8 @@ def entrypoint(session : XMimSession,
         
         shutil.rmtree(input_dir)
         task_uid = res.json()["uid"]
-        
+        t3 = timer()
+        logger.info(f"Send to server took: {timedelta(seconds=t3-t2)}")
          ## Make output dir and unzip response
         output_dir = tempfile.mkdtemp()
         output_zip = os.path.join(output_dir, "output.zip")
@@ -131,12 +143,14 @@ def entrypoint(session : XMimSession,
                         f.write(chunk)
                 break
             else:
-                time.sleep(5)
-                counter += 5
+                time.sleep(1)
+                counter += 1
                 print("Waiting ... Waited for {} seconds".format(counter))
                 if counter == 240:
                     raise Exception("Timeout")
         
+        t4 = timer()
+        logger.info(f"Waited for response in: {timedelta(seconds=t4-t3)}")
         
         inference_array = zip_to_np_array(output_zip, logger)
         for t in [("PCM_Low", pcm_low), ("PCM_Mid", pcm_mid), ("PCM_Up", pcm_up)]:
@@ -144,13 +158,26 @@ def entrypoint(session : XMimSession,
             
             tmp_arr = np.zeros_like(inference_array, dtype=bool)
             tmp_arr[inference_array == get_mask_integers(name)] = 1
+            logger.info("{} has {} voxels.".format(name, np.count_nonzero(tmp_arr)))
             c.getData().setFromNPArray(tmp_arr)
             
             c.redrawCompletely()
         
+        t5 = timer()
+        logger.info(f"Loaded into mim: {timedelta(seconds=t5-t4)}")
+        
         shutil.rmtree(output_dir)
-       # return session(ct, "Result of mode: {}".format(str(model_ids)))
-
+        #return session(ct, "Result of mode: {}".format(str(model_ids)))
+        
+        t6 = timer()
+        logger.info(f"Total time: {timedelta(seconds=t6-t0)}")
+        
     except Exception as e:
         logger.error(traceback.format_exc())
-        
+    finally:
+        if input_dir:
+            if os.path.exists(input_dir):
+                shutil.rmtree(input_dir)
+        if output_dir:
+            if os.path.exists(output_dir):
+                shutil.rmtree(output_dir)
