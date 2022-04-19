@@ -1,8 +1,8 @@
-/*
 !.gitignore
-!pythonInferencePCM/
-!pythonInferenceServerPipeline
 **/__pycache__/*
 **/.pydev*/**
 **/dist/**
 .pydev*
+.metadata
+common
+.project
