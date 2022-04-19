@@ -2,7 +2,7 @@
 !.gitignore
 !pythonInferencePCM/
 !pythonInferenceServerPipeline
-**__pycache__**
+**/__pycache__/*
 **/.pydev*/**
 **/dist/**
 .pydev*
