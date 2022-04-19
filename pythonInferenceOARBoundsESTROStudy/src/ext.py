@@ -17,7 +17,7 @@ from importlib.resources import path
 from typing import Dict, Tuple, List
 import json
 
-labels = ("Brainstem", "SpinalCord", "Lips", "Esophagus", "PCM_Low", "PCM_Mid", "PCM_Up", "Submandibular_merged", "Thyroid", "OralCavity")
+labels = {"Brainstem": 1, "Lips": 3, "Esophagus": 4, "PCM_Low": 5, "PCM_Mid": 6, "PCM_Up": 7, "OralCavity": 8, "Submandibular_merged": 9, "Thyroid": 10}
 
 def get_cert_file_path():
         absolutepath = os.path.abspath(__file__)        
@@ -67,45 +67,61 @@ def get_or_create_contour(label: str, ct: XMimImage) -> Tuple[str, XMimContour]:
         return label, c
         
     
-@mim_extension_entrypoint(name = "01_estro_oar_bounds",
+@mim_extension_entrypoint(name = "01_estro_oar_bounds_study",
                           author = "Mathis Rasmussen",
-                          description = "Runs deep learning inference with one input modality",
+                          description = "Runs deep learning inference with one ct and bounds",
                           category = "",
                           institution = "DCPT",
-                          version = 1.)
+                          version = 2.0)
 def entrypoint(session : XMimSession,
-               ct : XMimImage) -> List[XMimContour]:
+               ct : XMimImage,
+               human_readable_ids : String,
+               timeout : Integer,
+               ping_interval : Integer,
+               inference_server_url : String,
+               ) -> List[XMimContour]:
     
     logger = session.createLogger()
     logger.info("Starting extension OAR bounds extension...")
-    t0 = timer()
     try:
-        model_ids = [1]
+        human_readable_ids = human_readable_ids.split(" ")
 
-        ## Save image_array to nifti ...
+
+        ## make an array of zeros from the first label and break
+        for label, i in labels.items():
+            label, contour = get_or_create_contour(label, ct)
+            merged_array = np.zeros_like(contour.getData().copyToNPArray())
+            break
+        
+        ## merge all labels into merged_array
+        for label, i in labels.items():
+            label, contour = get_or_create_contour(label, ct)
+            contour_array = contour.getData().copyToNPArray()
+            merged_array[contour_array != 0] = i
+            
+        ## temporary dir to store ct and oars - to be zipped.
         input_dir = tempfile.mkdtemp()
 
-        ## Add CT to tasks
+        # to be zipped and shipped
         tasks = []
+
+        ## Add CT to tasks
         tasks.append((ct.getRawData().copyToNPArray(),
                                              ct.getNoxelSizeInMm(),
                                              input_dir,
                                              "CT"))
         
-        ## Add all organs at risk to tasks
-        for label in labels:
-            label, contour = get_or_create_contour(label, ct)
-            tasks.append((contour.getData().copyToNPArray(),
-                                            contour.getNoxelSizeInMm(),
-                                            input_dir,
-                                            label))
+        ## Add merged OAR
+        tasks.append((merged_array,
+                    ct.getNoxelSizeInMm(),
+                    input_dir,
+                    "OAR"))
+
+        ## Save all tasks to input_dir
+        for t in tasks:
+            save_volume_to_dir(*t)
         
-        tp = ThreadPool(16)
-        tp.starmap(save_volume_to_dir, tasks)
-        tp.close()
-        tp.join()
-        
-        ## ... zip the folder
+        ## zip the input_dir
         with tempfile.TemporaryFile() as tmp_file:
             with zipfile.ZipFile(tmp_file, "w", zipfile.ZIP_STORED) as z:
                 for file in os.listdir(input_dir):
@@ -115,8 +131,8 @@ def entrypoint(session : XMimSession,
             tmp_file.seek(0)
                         
             ## ... and post to inference_server
-            res = requests.post("https://omen.onerm.dk/api/tasks/",
-                                params={"model_ids": model_ids},
+            res = requests.post(f"{inference_server_url}/api/tasks/",
+                                params={"human_readable_ids": human_readable_ids},
                                 files={"zip_file": tmp_file},
                                 verify=get_cert_file_path())
             
@@ -126,25 +142,30 @@ def entrypoint(session : XMimSession,
         output_dir = tempfile.mkdtemp()
         output_zip = os.path.join(output_dir, "output.zip")
         counter = 0
-        while True:
-            res = requests.get("https://omen.onerm.dk/api/tasks/{}".format(task_uid),
+        while counter <= int(timeout):
+            res = requests.get(f"{inference_server_url}/api/tasks/{task_uid}",
                               stream=True,
                               verify=get_cert_file_path())
             if res.ok:
+                ## If okay, write output_zip to output_zip
                 with open(output_zip, "wb") as f:
                     for chunk in res.iter_content(chunk_size=1000000):
                         f.write(chunk)
+                
+                ## ... and break out of while loop
                 break
             
             elif res.status_code == 500:
                 raise Exception("Server reports an error - quitting")
+            
             else:
-                time.sleep(1)
-                counter += 1
-                print("Waiting ... Waited for {} seconds".format(counter))
-                if counter == 300:
-                    raise Exception("Timeout")
+                time.sleep(int(ping_interval))
+                counter += int(ping_interval)
         
+        else:
+            raise Exception("Timeout")
+        
+        ## load and redraw returned segmentations
         contour_return = []
         label_dict, array = zip_to_np_label_array_dict(output_zip, logger) ## contains {"oar": {"array": ndarray, "json": label_dict}}}
         for label, i in label_dict.items():    
