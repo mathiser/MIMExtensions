@@ -5,7 +5,6 @@ from task_input.task_input import TaskInput
 
 from task_output.task_output import TaskOutput
 
-
 from client_backend.exceptions import LastPostFailed, InferenceServerError
 
 

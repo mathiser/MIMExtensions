@@ -5,6 +5,5 @@
 .pydev*
 .metadata
 common
-.project
 mim_docs
 .idea

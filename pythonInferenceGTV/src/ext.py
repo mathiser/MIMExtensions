@@ -3,11 +3,11 @@ import traceback
 from MIMPython.EntryPoint import *
 from MIMPython.SupportedIOTypes import *
 
-from .client.inference_client import InferenceClient
-from .client_backend import ClientBackend
-from .contour_loader.contour_loader import ContourLoader
-from .image_container import ImageContainer
-from .task_input import TaskInput
+from client.inference_client import InferenceClient
+from client_backend.client_backend import ClientBackend
+from contour_loader.contour_loader import ContourLoader
+from image_container.image_container import ImageContainer
+from task_input.task_input import TaskInput
 
 EXTENSION_NAME = "00_GTVt_and_GTVn"
 
@@ -27,7 +27,7 @@ def entrypoint(session: XMimSession,
                model_human_readable_id: String,
                server_url: String,
                polling_interval_sec: Integer,
-               timeout_sec: Integer) -> List[XMimContour]:
+               timeout_sec: Integer):# -> List[XMimContour]:
     logger = session.createLogger()
     logger.info(f"Starting extension {EXTENSION_NAME}")
     try:
@@ -57,7 +57,7 @@ def entrypoint(session: XMimSession,
         contour_loader = ContourLoader(ref_image=CT)
         contour_loader.set_contours_from_label_array_dict(label_array_dict=label_array_dict)
 
-        return image_container.updated_contours
+        #return image_container.updated_contours
 
     except Exception as e:
         logger.error(e)
