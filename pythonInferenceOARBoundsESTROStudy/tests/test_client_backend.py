@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from client_backend.client_backend import ClientBackend
+from .client_backend import ClientBackend
 
 
 class TestClientBackend(unittest.TestCase):

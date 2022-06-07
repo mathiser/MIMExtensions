@@ -7,7 +7,7 @@ import zipfile
 import numpy as np
 import SimpleITK as sitk
 
-from task_output.task_output import TaskOutput
+from .task_output import TaskOutput
 
 
 class TestTaskOutput(unittest.TestCase):

@@ -1,5 +1,5 @@
 from typing import Dict
-
+import logging
 import numpy as np
 from MIMPython.SupportedIOTypes import XMimImage, XMimContour
 
@@ -10,9 +10,9 @@ class ImageContainer:
                  pet: XMimImage,
                  t1: XMimImage,
                  t2: XMimImage) -> None:
-
+        
         assert ct.getNoxelSizeInMm() == pet.getNoxelSizeInMm() == t1.getNoxelSizeInMm() == t2.getNoxelSizeInMm()
-
+        
         self.ct = ct
         self.pet = pet
         self.t1 = t1

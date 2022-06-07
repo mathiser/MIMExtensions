@@ -10,14 +10,13 @@ import SimpleITK
 import numpy as np
 import requests
 
-from client.inference_client import InferenceClient
-from task_input.test_task_input import TestTaskInput
+from .inference_client import InferenceClient
+from ..task_input.test_task_input import TestTaskInput
 
 from task_input.task_input import TaskInput
 from task_output.task_output import TaskOutput
 
 from client_backend.client_backend_interface import ClientBackendInterface
-
 from client_backend.exceptions import LastPostFailed
 
 

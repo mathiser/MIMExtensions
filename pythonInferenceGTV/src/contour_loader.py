@@ -6,9 +6,10 @@ from MIMPython.SupportedIOTypes import XMimImage, XMimContour
 
 
 class ContourLoader:
-    def __init__(self, ref_image: XMimImage):
-        self.ref_image = ref_image
+    def __init__(self, reference_image: XMimImage, logger):
+        self.ref_image = reference_image
         self.updated_contours = []
+        self.logger = logger
 
     def __get_or_create_contour(self, label: str) -> XMimContour:
         for contour in self.ref_image.getContours():
@@ -27,6 +28,8 @@ class ContourLoader:
 
             # Set the actual contour from a bool array
             contour.getData().setFromNPArray(array)
+            self.logger(str(label))
+            self.logger(str(contour.getDims()))
             contour.redrawCompletely()
             self.updated_contours.append(contour)
 

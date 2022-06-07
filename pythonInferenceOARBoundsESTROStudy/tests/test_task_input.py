@@ -3,7 +3,7 @@ import zipfile
 
 import numpy as np
 
-from task_input.task_input import TaskInput
+from .task_input import TaskInput
 
 
 class TestTaskInput(unittest.TestCase):
