@@ -2,14 +2,15 @@ import json
 import os
 import tempfile
 import zipfile
-from typing import Dict
+from typing import Dict, Tuple, List
 
 import SimpleITK as sitk
 import numpy as np
 
-
 class TaskOutput:
     def __init__(self, output_zip_bytes: bytes):
+        self.json_nii_list: List[Tuple[Dict, np.ndarray]] = [] # path to json in [0] and path to pred in [1] 
+        
         # Load output zip bytes to a TemporaryFile
         with tempfile.TemporaryFile(suffix=".zip") as output_zip:
             output_zip.write(output_zip_bytes)
@@ -20,37 +21,34 @@ class TaskOutput:
                 with zipfile.ZipFile(output_zip) as zip:
                     zip.extractall(output_dir)
 
-                # Set label json
-                self.label_json_path = self.__find_label_json_path_in_dir(output_dir)
-                assert self.label_json_path
-                with open(self.label_json_path) as r:
-                    self.label_json = json.loads(r.read())
-
-                # Set prediction image and array
-                self.prediction_nii_path = self.__find_prediction_nii_path_in_dir(output_dir)
-                assert self.prediction_nii_path
-                self.prediction_nii_img = sitk.ReadImage(self.prediction_nii_path)
-                self.prediction_nii_arr = sitk.GetArrayFromImage(self.prediction_nii_img)
-
-    def __find_label_json_path_in_dir(self, directory):
+                # Set self.json_nii_list
+                self.__find_label_json_and_nii_paths_in_dir(output_dir)
+                
+    def __load_json(self, path):
+        with open(path) as r:
+            return json.loads(r.read())
+        
+    def __find_label_json_and_nii_paths_in_dir(self, directory):
         for fol, subs, files in os.walk(directory):
             for file in files:
-                if file == "labels.json":
-                    return os.path.join(fol, file)
-
-    def __find_prediction_nii_path_in_dir(self, directory):
-        for fol, subs, files in os.walk(directory):
-            for file in files:
-                if file == "predictions.nii.gz":
-                    return os.path.join(fol, file)
-
+                path = os.path.join(fol, file)
+                if path.endswith(".json"):
+                    label_dict =  self.__load_json(path)
+                    img = sitk.ReadImage( path.replace(".json", ".nii.gz"))
+                    arr = sitk.GetArrayFromImage(img)
+                    
+                    self.json_nii_list.append((label_dict, arr))
+                    
     def get_output_as_label_array_dict(self) -> Dict[str, np.ndarray]:
         # Generate label_array_dict to return. Represented like {"GTVn_AI": nd.array with dtype bool}
         label_array_dict = {}
-        for i, label in self.label_json.items():
-            i = int(i)
-            tmp_array = np.zeros_like(self.prediction_nii_arr, dtype=bool)
-            tmp_array[self.prediction_nii_arr == i] = True
-            label_array_dict[label] = tmp_array
+        for label_dict_arr in self.json_nii_list:
+            label_dict, arr = label_dict_arr
+        
+            for i, label in label_dict.items():
+                i = int(i)
+                tmp_array = np.zeros_like(arr, dtype=bool)
+                tmp_array[arr == i] = True
+                label_array_dict[label] = tmp_array
 
         return label_array_dict

@@ -4,10 +4,8 @@ from typing import Dict
 import requests
 from urllib.parse import urljoin
 
-from .client_backend_interface import ClientBackendInterface
 
-
-class ClientBackend(ClientBackendInterface):
+class ClientBackend:
     def __init__(self, base_url: str):
         self.base_url = base_url
         self.cert_path = self.__get_cert_file_path()

@@ -11,9 +11,10 @@ class InferenceClient:
     def __init__(self,
                  logger,
                  client_backend,
-                 polling_interval_sec: int,
-                 timeout_sec: int,
+                 polling_interval_sec: int = 5,
+                 timeout_sec: int = 500,
                  ):
+        
         self.logger = logger
         self.task_endpoint = "/api/tasks/"
         self.client_backend = client_backend

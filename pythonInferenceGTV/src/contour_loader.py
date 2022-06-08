@@ -28,8 +28,8 @@ class ContourLoader:
 
             # Set the actual contour from a bool array
             contour.getData().setFromNPArray(array)
-            self.logger(str(label))
-            self.logger(str(contour.getDims()))
+            self.logger.info(str(label))
+            self.logger.info(str(contour.getDims()))
             contour.redrawCompletely()
             self.updated_contours.append(contour)
 
