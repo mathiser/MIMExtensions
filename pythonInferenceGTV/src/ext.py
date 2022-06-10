@@ -52,7 +52,7 @@ def generate_dicom_meta(reference_image):
     tag_dict = {tag: str(reference_image.getInfo().getDicomInfo().getValue(tag)) for tag in tags}
     return tag_dict    
 
-@mim_extension_entrypoint(name="InferenceServer_4_images",
+@mim_extension_entrypoint(name="InferenceServer4images",
                           author="Mathis Rasmussen",
                           description="Wraps and ships off four images to the inference server. Contours are returned and loaded",
                           category="Inference server model",
@@ -69,7 +69,7 @@ def InferenceServer4images(session: XMimSession,
     
     try:
         logger = session.createLogger()
-        logger.info("Starting extension InferenceServer_4_images")
+        logger.info("Starting extension InferenceServer4images")
         
         
         from .task_input import TaskInput
@@ -103,7 +103,7 @@ def InferenceServer4images(session: XMimSession,
         logger.error(traceback.format_exc())
         
 
-@mim_extension_entrypoint(name="InferenceServer_3_images",
+@mim_extension_entrypoint(name="InferenceServer3images",
                           author="Mathis Rasmussen",
                           description="Wraps and ships off four images to the inference server. Contours are returned and loaded",
                           category="Inference server model",
@@ -119,7 +119,7 @@ def InferenceServer3images(session: XMimSession,
     
     try:
         logger = session.createLogger()
-        logger.info("Starting extension InferenceServer_3_images")
+        logger.info("Starting extension InferenceServer3images")
 
         from .task_input import TaskInput
         task_input = TaskInput(meta_information=generate_image_meta_information(img_zero),
@@ -150,7 +150,7 @@ def InferenceServer3images(session: XMimSession,
         logger.error(traceback.format_exc())
 
 
-@mim_extension_entrypoint(name="InferenceServer_2_images",
+@mim_extension_entrypoint(name="InferenceServer2images",
                           author="Mathis Rasmussen",
                           description="Wraps and ships off four images to the inference server. Contours are returned and loaded",
                           category="Inference server model",
@@ -165,7 +165,7 @@ def InferenceServer2images(session: XMimSession,
     
     try:
         logger = session.createLogger()
-        logger.info("Starting extension InferenceServer_2_images")
+        logger.info("Starting extension InferenceServer2images")
 
         from .task_input import TaskInput
 
@@ -195,7 +195,7 @@ def InferenceServer2images(session: XMimSession,
         logger.error(traceback.format_exc())
 
 
-@mim_extension_entrypoint(name="InferenceServer_1_images",
+@mim_extension_entrypoint(name="InferenceServer1images",
                           author="Mathis Rasmussen",
                           description="Ships off to inference server. Contours are returned and loaded",
                           category="Inference server model",
@@ -256,7 +256,7 @@ def post(task_input, reference_image: XMimImage, server_url, logger):
     return uid
 
 
-@mim_extension_entrypoint(name="InferenceServer_get_from_uid",
+@mim_extension_entrypoint(name="InferenceServerGetFromUid",
                           author="Mathis Rasmussen",
                           description="Get output from InferenceServer by a UID. The UID of a task is returned then it is posted",
                           category="Inference server model",

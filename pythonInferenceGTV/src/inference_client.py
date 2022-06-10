@@ -34,7 +34,7 @@ class InferenceClient:
                 self.logger.info(res)
                 self.logger.info(str(res.content))
                 if res.ok:
-                    return json.loads(res.content)
+                    return str(json.loads(res.content))
                 else:
                     raise LastPostFailed
                 
