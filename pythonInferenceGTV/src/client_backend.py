@@ -23,7 +23,7 @@ class ClientBackend:
     def __get_cert_file_path(self):
         absolutepath = os.path.abspath(__file__)
         fileDirectory = os.path.dirname(absolutepath)
-        cert_path = os.path.join(fileDirectory, "certs/omen.onerm.dk.pem")
+        cert_path = os.path.join(fileDirectory, "certs/certs.pem")
         if not os.path.isfile(cert_path):
             raise Exception("Cert file not found")
-        return os.path.join(fileDirectory, "certs/omen.onerm.dk.pem")
+        return os.path.join(fileDirectory, "certs/certs.pem")
