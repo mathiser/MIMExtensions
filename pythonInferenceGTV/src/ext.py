@@ -90,7 +90,6 @@ def InferenceServer4images(session: XMimSession,
             task_input.add_dicom_info(generate_dicom_meta(img_three))
         
         uid = post(task_input=task_input,
-                   reference_image=img_zero,
                    server_url=server_url,
                    logger=logger)
         
@@ -137,7 +136,6 @@ def InferenceServer3images(session: XMimSession,
             
         
         uid = post(task_input=task_input,
-                   reference_image=img_zero,
                    server_url=server_url,
                    logger=logger)
         
@@ -182,7 +180,6 @@ def InferenceServer2images(session: XMimSession,
 
             
         uid = post(task_input=task_input,
-                   reference_image=img_zero,
                    server_url=server_url,
                    logger=logger)
         
@@ -228,7 +225,6 @@ def InferenceServer1images(session: XMimSession,
             task_input.add_dicom_info(generate_dicom_meta(img_zero))
 
         uid = post(task_input=task_input,
-                   reference_image=img_zero,
                    server_url=server_url,
                    logger=logger)
         
@@ -240,12 +236,11 @@ def InferenceServer1images(session: XMimSession,
         logger.error(e)
         logger.error(traceback.format_exc())
         
-def post(task_input, reference_image: XMimImage, server_url, logger):
+def post(task_input, server_url, logger):
+    
     from .inference_client import InferenceClient
     from .client_backend import ClientBackend
-    from .contour_loader import ContourLoader
-    from .task_output import TaskOutput
-
+ 
     client_backend = ClientBackend(base_url=server_url)
     inference_client = InferenceClient(client_backend=client_backend,
                                        logger=logger)
