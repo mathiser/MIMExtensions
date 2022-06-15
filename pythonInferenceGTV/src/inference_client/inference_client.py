@@ -2,15 +2,16 @@ import json
 import time
 import traceback
 
-from .task_input import TaskInput
-from .task_output import TaskOutput
-from .exceptions import LastPostFailed, InferenceServerError
+from task_input.task_input import TaskInput
+from task_output.task_output import TaskOutput
+from exceptions.exceptions import LastPostFailed, InferenceServerError
+from client_backend.client_backend_interface import ClientBackendInterface
+from .inference_client_interface import InferenceClientInterface
 
-
-class InferenceClient:
+class InferenceClient(InferenceClientInterface):
     def __init__(self,
                  logger,
-                 client_backend,
+                 client_backend: ClientBackendInterface,
                  polling_interval_sec: int = 5,
                  timeout_sec: int = 500,
                  ):

@@ -1,56 +1,24 @@
 import traceback
-from MIMPython.EntryPoint import *
-from MIMPython.SupportedIOTypes import *
 import os
+import sys
+sys.path.append(os.path.dirname(__file__))
 
-"""
-Welcome to the MIMExtension to serve the inference server (https://github.com/mathiser/inference_server)
-This extension is build up as follows:
+try: # For production
+    from MIMPython.EntryPoint import mim_extension_entrypoint
+    from MIMPython.SupportedIOTypes import String, Integer, XMimImage, XMimSession
 
-ext.py
-Is the main file containing entrypoints to run from MIM.
-There are four posting methods, which zips images and ships them off to an instance of the inference server. Each of the four (func InferenceServerXimages)
-generates an object task_input of type TaskInput, and parse it on to the function "post". "Post" takes care of everything that is necessary to post
-the TaskInput to the server, and it returns a UID of the task, which is needed to retrieve the task output again.
- 
-The function "InferenceServerGetFromUid" takes the UID from a posted task and polls the inference server with a specified interval unil the task is retrieved or timeout.
-The retrieved task is loaded as a TaskOutput and loaded into MIM as contours to the reference_image (always img_zero) through ContourLoader.
+except ModuleNotFoundError: ## For Testing
+    from testing.mock_classes import XMimImage, XMimSession
+    from builtins import str as String
+    from builtins import int as Integer
 
-inference_client.py
-Contains the InferenceClient, which contains a function post_task to post a TaskInput and a function get_task to get the task output from a UID
-Actual http-methods are abstracted away to ClientBackend in client_backend.py
-
-client_backend.py
-Contains ClientBackend which takes care of the actual http post and get.
-
-task_input.py
-A container for images as numpy arrays. Can serve them as a temporary zip file for posting
-
-task_output.py
-A container for the output of the InferenceServer. Can serve predictions as a dictionary of {segmentation name: np.ndarray dtype==bool}
-
-contour_loader.py
-Contains ContourLoader, which can set contours to a reference image the dictionary of TaskOutput.get_output_as_label_array_dict
-  
-"""
-
-
-def generate_image_meta_information(reference_image):
-        meta = {}
-        
-        # Scaling factor from image
-        contour = reference_image.createNewContour('scaling_factor_getter')
-        meta["scaling_factor"] = contour.getMultiplier()
-        contour.delete()
-        
-        # Spacing if images
-        meta["spacing"] = reference_image.getNoxelSizeInMm()
-        return meta
-
-def generate_dicom_meta(reference_image):
-    tags = reference_image.getInfo().getDicomInfo().getTags()
-    tag_dict = {tag: str(reference_image.getInfo().getDicomInfo().getValue(tag)) for tag in tags}
-    return tag_dict    
+from task_input.task_input import TaskInput
+from inference_client.inference_client import InferenceClient
+from client_backend.client_backend import ClientBackend
+from contour_loader.contour_loader import ContourLoader
+from task_output.task_output import TaskOutput
+from task_input.info_generators import generate_image_meta_information, generate_dicom_meta
+    
 
 @mim_extension_entrypoint(name="InferenceServer4images",
                           author="Mathis Rasmussen",
@@ -58,7 +26,7 @@ def generate_dicom_meta(reference_image):
                           category="Inference server model",
                           institution="DCPT",
                           version=0.2)
-def InferenceServer4images(session: XMimSession,
+def inferenceServer4images(session: XMimSession,
                img_zero: XMimImage,
                img_one: XMimImage,
                img_two: XMimImage,
@@ -70,9 +38,6 @@ def InferenceServer4images(session: XMimSession,
     try:
         logger = session.createLogger()
         logger.info("Starting extension InferenceServer4images")
-        
-        
-        from .task_input import TaskInput
 
         task_input = TaskInput(meta_information=generate_image_meta_information(img_zero),
                                model_human_readable_id=model_human_readable_id)
@@ -90,7 +55,6 @@ def InferenceServer4images(session: XMimSession,
             task_input.add_dicom_info(generate_dicom_meta(img_three))
         
         uid = post(task_input=task_input,
-                   reference_image=img_zero,
                    server_url=server_url,
                    logger=logger)
         
@@ -109,7 +73,7 @@ def InferenceServer4images(session: XMimSession,
                           category="Inference server model",
                           institution="DCPT",
                           version=0.2)
-def InferenceServer3images(session: XMimSession,
+def inferenceServer3images(session: XMimSession,
                img_zero: XMimImage,
                img_one: XMimImage,
                img_two: XMimImage,
@@ -121,7 +85,6 @@ def InferenceServer3images(session: XMimSession,
         logger = session.createLogger()
         logger.info("Starting extension InferenceServer3images")
 
-        from .task_input import TaskInput
         task_input = TaskInput(meta_information=generate_image_meta_information(img_zero),
                                model_human_readable_id=model_human_readable_id)
         
@@ -137,7 +100,6 @@ def InferenceServer3images(session: XMimSession,
             
         
         uid = post(task_input=task_input,
-                   reference_image=img_zero,
                    server_url=server_url,
                    logger=logger)
         
@@ -156,7 +118,7 @@ def InferenceServer3images(session: XMimSession,
                           category="Inference server model",
                           institution="DCPT",
                           version=0.2)
-def InferenceServer2images(session: XMimSession,
+def inferenceServer2images(session: XMimSession,
                img_zero: XMimImage,
                img_one: XMimImage,
                export_dicom_info_0_or_1: Integer,
@@ -166,8 +128,6 @@ def InferenceServer2images(session: XMimSession,
     try:
         logger = session.createLogger()
         logger.info("Starting extension InferenceServer2images")
-
-        from .task_input import TaskInput
 
         task_input = TaskInput(meta_information=generate_image_meta_information(img_zero),
                                model_human_readable_id=model_human_readable_id)
@@ -182,7 +142,6 @@ def InferenceServer2images(session: XMimSession,
 
             
         uid = post(task_input=task_input,
-                   reference_image=img_zero,
                    server_url=server_url,
                    logger=logger)
         
@@ -201,7 +160,7 @@ def InferenceServer2images(session: XMimSession,
                           category="Inference server model",
                           institution="DCPT",
                           version=0.2)
-def InferenceServer1images(session: XMimSession,
+def inferenceServer1images(session: XMimSession,
                            img_zero: XMimImage,
                            export_dicom_info_0_or_1: Integer,
                            model_human_readable_id: String,
@@ -211,7 +170,6 @@ def InferenceServer1images(session: XMimSession,
         logger = session.createLogger()
         logger.info("Starting extension InferenceServer1images")
        
-        from .task_input import TaskInput
         try:
             logger.info(str(generate_dicom_meta(img_zero)))
         except Exception as e:
@@ -228,11 +186,9 @@ def InferenceServer1images(session: XMimSession,
             task_input.add_dicom_info(generate_dicom_meta(img_zero))
 
         uid = post(task_input=task_input,
-                   reference_image=img_zero,
                    server_url=server_url,
                    logger=logger)
         
-        logger.info(uid)
         return uid
         
     except Exception as e:
@@ -240,18 +196,19 @@ def InferenceServer1images(session: XMimSession,
         logger.error(e)
         logger.error(traceback.format_exc())
         
-def post(task_input, reference_image: XMimImage, server_url, logger):
-    from .inference_client import InferenceClient
-    from .client_backend import ClientBackend
-    from .contour_loader import ContourLoader
-    from .task_output import TaskOutput
-
+def post(task_input, server_url, logger):
+    
+    
+    # Instantiate client
+    logger.info("Instantiating client ...")
     client_backend = ClientBackend(base_url=server_url)
     inference_client = InferenceClient(client_backend=client_backend,
                                        logger=logger)
     # Post task
     logger.info(f"Posting task_input: url = {client_backend.base_url}{inference_client.task_endpoint}")
     uid = inference_client.post_task(task_input)
+    
+    logger.info(f"Task UID: {uid}")
     
     return uid
 
@@ -262,7 +219,7 @@ def post(task_input, reference_image: XMimImage, server_url, logger):
                           category="Inference server model",
                           institution="DCPT",
                           version=0.2)
-def InferenceServerGetFromUid(session: XMimSession,
+def inferenceServerGetFromUid(session: XMimSession,
                               uid: String,
                               reference_image: XMimImage,
                               server_url: String,
@@ -270,11 +227,6 @@ def InferenceServerGetFromUid(session: XMimSession,
                               timeout_sec: Integer): 
     
     try:
-        from .inference_client import InferenceClient
-        from .client_backend import ClientBackend
-        from .contour_loader import ContourLoader
-        from .task_output import TaskOutput
-    
         logger = session.createLogger()
         client_backend = ClientBackend(base_url=server_url)
         inference_client = InferenceClient(client_backend=client_backend,
@@ -285,9 +237,10 @@ def InferenceServerGetFromUid(session: XMimSession,
         # Polling for output zip
         task_output = inference_client.get_task(uid)
     
-        # Load contours to MIM
+        # Get label array_dict from task_output ...
         label_array_dict = task_output.get_output_as_label_array_dict()
     
+        # ... and load it into ContourLoader, which sets the contours to MIM
         contour_loader = ContourLoader(reference_image=reference_image, logger=logger)
         contour_loader.set_contours_from_label_array_dict(label_array_dict=label_array_dict)
     

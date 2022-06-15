@@ -3,22 +3,25 @@ from typing import Dict
 
 import requests
 from urllib.parse import urljoin
+from .client_backend_interface import ClientBackendInterface
 
-
-class ClientBackend:
-    def __init__(self, base_url: str):
+class ClientBackend(ClientBackendInterface):
+    def __init__(self, base_url: str, verify=None):
         self.base_url = base_url
-        self.cert_path = self.__get_cert_file_path()
+        if not verify:
+            self.verify = self.__get_cert_file_path()
+        else:
+            self.verify = verify
         
     def get(self, endpoint: str):
         return requests.get(url=urljoin(self.base_url, endpoint),
-                            verify=self.cert_path)
+                            verify=self.verify)
     
     def post(self, endpoint: str, params: Dict, files: Dict):
         return requests.post(url=urljoin(self.base_url, endpoint),
                              params=params,
                              files=files,
-                             verify=self.cert_path)
+                             verify=self.verify)
 
     def __get_cert_file_path(self):
         absolutepath = os.path.abspath(__file__)

@@ -1,12 +1,12 @@
-import os
 import unittest
-
-from .client_backend import ClientBackend
-
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from client_backend.client_backend import ClientBackend
 
 class TestClientBackend(unittest.TestCase):
     def setUp(self) -> None:
-        self.cb = ClientBackend("https://httpbin.org/", cert_path=True)
+        self.cb = ClientBackend("https://httpbin.org/", verify=True)
 
     def test_get(self):
         res = self.cb.get("/get")
