@@ -9,24 +9,90 @@ import SimpleITK as sitk
 import numpy as np
 import json
 
-class TaskInput:
-    def __init__(self,
-                 meta_information: Dict,
-                 model_human_readable_id: str) -> None:
-        
-        self.meta = meta_information # Generate in ext.py:generate_image_meta_information. Contains spacing and scaling factor of img_zero
-     
-        self.images: List[np.ndarray] = [] # Container for np arrays of images. Added through self.add_array
-        self.dicom_info: List[Dict] = [] # Container for dicom info dictionaries. Added through self.add_dicom_info 
-        
-        self.model_human_readable_id = model_human_readable_id # the human_readable_id of the model
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-    def add_array(self, array: np.ndarray) -> None:
-        self.images.append(array)
-    
-    def add_dicom_info(self, dicom_info: Dict) -> None:
-        self.dicom_info.append(dicom_info)
+try: # For production
+    from MIMPython.SupportedIOTypes import XMimImage, XMimContour
+except ModuleNotFoundError: ## For Testing
+    from testing.mock_classes import XMimImage, XMimContour
+
+from .info_generators import generate_image_meta_information, generate_dicom_meta, generate_meta_for_contour
+
+
+class TaskInput:
+    def __init__(self, model_human_readable_id: str, export_dicom_info: bool = False) -> None:     
+        self.model_human_readable_id = model_human_readable_id # the human_readable_id of the model
+        self.export_dicom_info = export_dicom_info
+        self.images: List[XMimImage] = [] # Container for np arrays of images. Added through self.add_array
+        self.contours: List[XMimContour] = []
+        self.meta_information = None
         
+        self.tmp_files_to_close = []
+        
+    def __del__(self):
+        for tmp_file in self.tmp_files_to_close:
+            try:
+                tmp_file.close()
+            except:
+                pass
+            
+    def add_image(self, image: XMimImage) -> None:
+        if len(self.images) == 0:
+            self.meta_information = generate_image_meta_information(image) 
+        self.images.append(image)
+    
+    def set_contours_to_export_from_img(self, image: XMimImage, contour_names: List[str] = None):
+        if not contour_names:
+            self.contours = image.getContours()
+        elif contour_names:
+            for name in contour_names:
+                for existing_contour in image.getContours():
+                    if name == existing_contour.getInfo().getName():
+                        self.contours.append(existing_contour)
+                        break
+                     
+    def __dump_contour(self, contour: XMimContour, out_dir):
+        # Dump contours
+        print(contour)
+        meta = generate_meta_for_contour(contour)
+        arr = contour.getData().copyToNPArray()
+        img = sitk.GetImageFromArray(arr)
+        path = os.path.join(out_dir, "{}.nii.gz".format(meta["name"].replace("/", "-")))
+        sitk.WriteImage(img, path, useCompression=True)
+       
+        with open(path + ".json", "w") as f:
+            f.write(json.dumps(meta))
+    
+    def __dump_image(self, image: XMimImage, index: int, out_dir):
+        assert self.meta_information # should be set when first image is added
+         
+        # To follow nnUNet convention of id_0000.nii.gz, id_0001.nii.gz, etc.
+        scan_id = str(10000 + index)[1:]
+        
+        # Get np array
+        arr = image.getRawData().copyToNPArray()
+        img = sitk.GetImageFromArray(arr)
+        img.SetSpacing(self.meta_information["spacing"]) # Sets spacing from reference image img_zero
+        
+        # Make the full path
+        path = os.path.join(out_dir, "tmp_{}.nii.gz".format(scan_id)) 
+        
+        # Write image
+        sitk.WriteImage(img, path, useCompression=True) # Dumps to tmp_dir 
+        
+        # If export dicom_info is set, dump dicom info
+        if self.export_dicom_info:
+            dicom_info = generate_dicom_meta(image)
+            with open(os.path.join(out_dir, "tmp_{}.dicom_info.json".format(scan_id)), "w") as f:
+                f.write(json.dumps(dicom_info))
+        
+    def __dump_meta(self, out_dir):
+        assert self.meta_information
+        with open(os.path.join(out_dir, "meta.json"), "w") as f:
+                f.write(json.dumps(self.meta_information))
+                    
     def get_input_zip(self) -> tempfile.TemporaryFile:
         """ 
         Serves images as a temporary zip file that must be closed manually
@@ -34,30 +100,23 @@ class TaskInput:
         Meta informations is dumped as json in 'meta.json'
         """
         
-        # Tmp file for the zip_object
-        tmp_file = tempfile.TemporaryFile() ## This is returned and MUST BE CLOSE MANUALLY!
-        
         # Tmp dir to save the task elements - is eventually zipped
         with tempfile.TemporaryDirectory() as tmp_dir:
             
             # Dump meta information as json to tmp_dir
-            with open(os.path.join(tmp_dir, "meta.json"), "w") as f:
-                f.write(json.dumps(self.meta))
+            self.__dump_meta(tmp_dir)
+            
+            # Dump images as .nii.gz to tmp_array
+            for i, image in enumerate(self.images):
+                self.__dump_image(image, i, tmp_dir)
                 
-            # Dump arrays as .nii.gz to tmp_array
-            for i, arr in enumerate(self.images):
-                scan_id = str(10000 + i)[1:] # To follow nnUNet convention of id_0000.nii.gz, id_0001.nii.gz, etc.
-                img = sitk.GetImageFromArray(arr)
-                img.SetSpacing(self.meta["spacing"]) # Sets spacing from reference image img_zero
-                path = os.path.join(tmp_dir, "tmp_{}.nii.gz".format(scan_id)) # Make the full path
-                sitk.WriteImage(img, path, useCompression=True) # Dumps to tmp_dir 
-                
-                # If dicom info is added, it should be dumped to tmp_dir as jsons.
-                if len(self.dicom_info) != 0:
-                    with open(os.path.join(tmp_dir, "tmp_{}.dicom_info.json".format(scan_id)), "w") as f:
-                        f.write(json.dumps(self.dicom_info[i]))
-                
+            # Export contours if any added
+            for contour in self.contours:
+                self.__dump_contour(contour, tmp_dir) 
+            
             # tmp_file is used to make a ZipFile to return
+            tmp_file = tempfile.TemporaryFile() ## This is returned and MUST BE CLOSE MANUALLY!
+            self.tmp_files_to_close.append(tmp_file)
             with zipfile.ZipFile(tmp_file, "w") as z:
                 for file in os.listdir(tmp_dir):
                     z.write(os.path.join(tmp_dir, file), arcname=file)

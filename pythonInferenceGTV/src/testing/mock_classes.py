@@ -4,13 +4,14 @@ import os
 import json
 import logging
 
+
 class XMimSession:
     def createLogger(self):
         return logging.getLogger(__file__)
 
-image_dim = np.array([64, 128, 128])
-noxelsize = np.array([3, 1.17, 1.17])
-multiplier = np.array([1, 2, 2])
+image_dim = [64, 128, 128]
+noxelsize = [3, 1.17, 1.17]
+multiplier = [1, 2, 2]
 
 class XMimImage:
     def __init__(self):
@@ -42,7 +43,7 @@ class XMimImageData:
     def __init__(self):
         self.arr = np.random.randint(low=-1000, high=1200, size=image_dim)
     
-    def copyToNPArray():
+    def copyToNPArray(self):
         return self.arr
     
         
@@ -75,7 +76,7 @@ class XMimContour:
         self.multiplier = multiplier
         self.data = XMimContourData()
         self.info = XMimContourInfo(self.name)
-
+    
     def getMultiplier(self):
         return self.multiplier
     
@@ -103,7 +104,7 @@ class XMimContourInfo:
 
 class XMimContourData:
     def __init__(self):
-        self.arr = np.random.randint(0, 2, image_dim*multiplier)
+        self.arr = np.random.randint(0, 2, np.array(image_dim)*np.array(multiplier))
 
     def setFromNPArray(self, new_arr = np.ndarray):
         assert self.arr.shape == new_arr.shape

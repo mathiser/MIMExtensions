@@ -32,7 +32,7 @@ The interface between MIM and the inference server is arbitrary, and thus the fo
 ### Variables
 When launching InferenceServerXimages extensions the following variables must be set:
 - img_{zero..three}: Is the MIM images to ship off.
-- export_dicom_info_0_or_1: 0 or 1: sets whether all dicom tags should be shipped along. 
+- export_dicom_info: 0 or 1: sets whether all dicom tags should be shipped along. 
 - model_human_readable_id: is the human readable id of the model one prefer to run a given set of images on.
 - server_url: is the base url of the instance of the inference server. Could look like: "https://omen.onerm.dk". Do not omit "https://"
 

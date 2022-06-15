@@ -18,7 +18,7 @@ from client_backend.client_backend import ClientBackend
 from contour_loader.contour_loader import ContourLoader
 from task_output.task_output import TaskOutput
 from task_input.info_generators import generate_image_meta_information, generate_dicom_meta
-    
+from ext_funtions.ext_functions import inferenceServerPost
 
 @mim_extension_entrypoint(name="InferenceServer4images",
                           author="Mathis Rasmussen",
@@ -31,42 +31,24 @@ def inferenceServer4images(session: XMimSession,
                img_one: XMimImage,
                img_two: XMimImage,
                img_three: XMimImage,
-               export_dicom_info_0_or_1: Integer,
                model_human_readable_id: String,
+               export_dicom_info: Integer,
+               export_contours: Integer, 
+               contour_names: String,
                server_url: String) -> String:
     
     try:
         logger = session.createLogger()
         logger.info("Starting extension InferenceServer4images")
-
-        task_input = TaskInput(meta_information=generate_image_meta_information(img_zero),
-                               model_human_readable_id=model_human_readable_id)
         
-        task_input.add_array(img_zero.getRawData().copyToNPArray())
-        task_input.add_array(img_one.getRawData().copyToNPArray())
-        task_input.add_array(img_two.getRawData().copyToNPArray())
-        task_input.add_array(img_three.getRawData().copyToNPArray())
+        images = [img_zero, img_one, img_two, img_three]
+        return interenceServerPost() 
         
-        assert export_dicom_info_0_or_1 in [0, 1]
-        if export_dicom_info_0_or_1:
-            task_input.add_dicom_info(generate_dicom_meta(img_zero))
-            task_input.add_dicom_info(generate_dicom_meta(img_one))
-            task_input.add_dicom_info(generate_dicom_meta(img_two))
-            task_input.add_dicom_info(generate_dicom_meta(img_three))
-        
-        uid = post(task_input=task_input,
-                   server_url=server_url,
-                   logger=logger)
-        
-        logger.info(uid)
-        return uid
-    
     except Exception as e:
         logger.error("ERROR")
         logger.error(e)
         logger.error(traceback.format_exc())
         
-
 @mim_extension_entrypoint(name="InferenceServer3images",
                           author="Mathis Rasmussen",
                           description="Wraps and ships off four images to the inference server. Contours are returned and loaded",
@@ -77,41 +59,22 @@ def inferenceServer3images(session: XMimSession,
                img_zero: XMimImage,
                img_one: XMimImage,
                img_two: XMimImage,
-               export_dicom_info_0_or_1: Integer,
                model_human_readable_id: String,
+               export_dicom_info: Integer,
+               export_contours: Integer, 
+               contour_names: String,
                server_url: String) -> String:
     
     try:
         logger = session.createLogger()
-        logger.info("Starting extension InferenceServer3images")
-
-        task_input = TaskInput(meta_information=generate_image_meta_information(img_zero),
-                               model_human_readable_id=model_human_readable_id)
+        logger.info("Starting extension InferenceServer4images")
         
-        task_input.add_array(img_zero.getRawData().copyToNPArray())
-        task_input.add_array(img_one.getRawData().copyToNPArray())
-        task_input.add_array(img_two.getRawData().copyToNPArray())
-
-        assert export_dicom_info_0_or_1 in [0, 1]
-        if export_dicom_info_0_or_1:
-            task_input.add_dicom_info(generate_dicom_meta(img_zero))
-            task_input.add_dicom_info(generate_dicom_meta(img_one))
-            task_input.add_dicom_info(generate_dicom_meta(img_two))
-            
-        
-        uid = post(task_input=task_input,
-                   server_url=server_url,
-                   logger=logger)
-        
-        logger.info(uid)
-        return uid
-    
+        return 
     except Exception as e:
         logger.error("ERROR")
         logger.error(e)
         logger.error(traceback.format_exc())
-
-
+        
 @mim_extension_entrypoint(name="InferenceServer2images",
                           author="Mathis Rasmussen",
                           description="Wraps and ships off four images to the inference server. Contours are returned and loaded",
@@ -121,26 +84,34 @@ def inferenceServer3images(session: XMimSession,
 def inferenceServer2images(session: XMimSession,
                img_zero: XMimImage,
                img_one: XMimImage,
-               export_dicom_info_0_or_1: Integer,
                model_human_readable_id: String,
+               export_dicom_info: Integer,
+               export_contours: Integer, 
+               contour_names: String,
                server_url: String) -> String:
     
     try:
         logger = session.createLogger()
-        logger.info("Starting extension InferenceServer2images")
-
-        task_input = TaskInput(meta_information=generate_image_meta_information(img_zero),
-                               model_human_readable_id=model_human_readable_id)
+        logger.info("Starting extension InferenceServer4images")
         
-        task_input.add_array(img_zero.getRawData().copyToNPArray())
-        task_input.add_array(img_one.getRawData().copyToNPArray())
+        export_dicom_info = bool(export_dicom_info)
+        export_contours = bool(export_contours)
         
-        assert export_dicom_info_0_or_1 in [0, 1]
-        if export_dicom_info_0_or_1:
-            task_input.add_dicom_info(generate_dicom_meta(img_zero))
-            task_input.add_dicom_info(generate_dicom_meta(img_one))
+        if contour_names.lower() == "all":
+            contour_names = None
+        else:
+            contour_names = contour_names.split(" ")
+        
+        task_input = TaskInput(model_human_readable_id=model_human_readable_id)
+        
+        task_input.add_image(img_zero)
+        task_input.add_image(img_one)
 
-            
+        
+        if export_contours:
+            task_input.set_contours_to_export_from_img(img_zero, contour_names=contour_names)
+        
+        
         uid = post(task_input=task_input,
                    server_url=server_url,
                    logger=logger)
@@ -152,64 +123,73 @@ def inferenceServer2images(session: XMimSession,
         logger.error("ERROR")
         logger.error(e)
         logger.error(traceback.format_exc())
-
-
+        
 @mim_extension_entrypoint(name="InferenceServer1images",
                           author="Mathis Rasmussen",
-                          description="Ships off to inference server. Contours are returned and loaded",
+                          description="Wraps and ships off four images to the inference server. Contours are returned and loaded",
                           category="Inference server model",
                           institution="DCPT",
                           version=0.2)
 def inferenceServer1images(session: XMimSession,
-                           img_zero: XMimImage,
-                           export_dicom_info_0_or_1: Integer,
-                           model_human_readable_id: String,
-                           server_url: String) -> String:
+               img_zero: XMimImage,
+               model_human_readable_id: String,
+               export_dicom_info: Integer,
+               export_contours: Integer, 
+               contour_names: String,
+               server_url: String) -> String:
     
     try:
         logger = session.createLogger()
-        logger.info("Starting extension InferenceServer1images")
-       
-        try:
-            logger.info(str(generate_dicom_meta(img_zero)))
-        except Exception as e:
-            logger.error(e)
-            logger.error(traceback.format_exc())
-            
-        task_input = TaskInput(meta_information=generate_image_meta_information(img_zero),
-                               model_human_readable_id=model_human_readable_id)
+        logger.info("Starting extension InferenceServer4images")
         
-        task_input.add_array(img_zero.getRawData().copyToNPArray())
+        export_dicom_info = bool(export_dicom_info)
+        export_contours = bool(export_contours)
+        
+        if contour_names.lower() == "all":
+            contour_names = None
+        else:
+            contour_names = contour_names.split(" ")
+        
+        task_input = TaskInput(model_human_readable_id=model_human_readable_id)
+        
+        task_input.add_image(img_zero)
 
-        assert export_dicom_info_0_or_1 in [0, 1]
-        if export_dicom_info_0_or_1:
-            task_input.add_dicom_info(generate_dicom_meta(img_zero))
-
+        if export_contours:
+            task_input.set_contours_to_export_from_img(img_zero, contour_names=contour_names)
+        
+        
         uid = post(task_input=task_input,
                    server_url=server_url,
                    logger=logger)
         
+        logger.info(uid)
         return uid
-        
+    
     except Exception as e:
         logger.error("ERROR")
         logger.error(e)
         logger.error(traceback.format_exc())
         
+        
+        
 def post(task_input, server_url, logger):
+    try:
+        # Instantiate client
+        logger.info("Instantiating client ...")
+        client_backend = ClientBackend(base_url=server_url)
+        inference_client = InferenceClient(client_backend=client_backend,
+                                           logger=logger)
+        # Post task
+        logger.info(f"Posting task_input: url = {client_backend.base_url}{inference_client.task_endpoint}")
+        uid = inference_client.post_task(task_input)
+        
+        logger.info(f"Task UID: {uid}")
     
-    
-    # Instantiate client
-    logger.info("Instantiating client ...")
-    client_backend = ClientBackend(base_url=server_url)
-    inference_client = InferenceClient(client_backend=client_backend,
-                                       logger=logger)
-    # Post task
-    logger.info(f"Posting task_input: url = {client_backend.base_url}{inference_client.task_endpoint}")
-    uid = inference_client.post_task(task_input)
-    
-    logger.info(f"Task UID: {uid}")
-    
+    except Exception as e:
+        logger.error("ERROR")
+        logger.error(e)
+        logger.error(traceback.format_exc())
+        
     return uid
 
 
