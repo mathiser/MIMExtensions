@@ -16,22 +16,10 @@ except ModuleNotFoundError:  # For Testing
 from client_backend.client_backend import ClientBackend
 from ext_functions.ext_functions import inference_server_post, inference_server_get
 
-description = """
-Wraps and ships off four images to the inference server. Contours are returned and loaded.
-- img_zero: functions as reference img. Meta information and contours from this will be shipped off.
-- model_human_readable_id: ID of the model. See /api/models/ of your server
-- export_dicom_info: 0 or 1: whether dicom tags should be saved and shipped along
-- export_contours: 0 or 1: whether contours should be shipped along
-- contour_names: ignored if export_contours is 0. If empty, all contours are selected. A list of contours to export can
- be provided seperated by comma, semicolon and/or white-space
-- server_url: The URL of the inference serve instance. Must start with the appropriate http-prefix
- e.g. https://omen.onerm.dk
-"""
-
 
 @mim_extension_entrypoint(name="InferenceServer4images",
                           author="Mathis Rasmussen",
-                          description=description,
+                          description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
                           version=1.0)
@@ -65,7 +53,7 @@ def inferenceServer4images(session: XMimSession,
 
 @mim_extension_entrypoint(name="InferenceServer3images",
                           author="Mathis Rasmussen",
-                          description=description,
+                          description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
                           version=1.0)
@@ -98,7 +86,7 @@ def inference_server_3_images(session: XMimSession,
 
 @mim_extension_entrypoint(name="InferenceServer2images",
                           author="Mathis Rasmussen",
-                          description=description,
+                          description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
                           version=1.0)
@@ -131,7 +119,7 @@ def inference_server_2_images(session: XMimSession,
 
 @mim_extension_entrypoint(name="InferenceServer1images",
                           author="Mathis Rasmussen",
-                          description=description,
+                          description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
                           version=1.0)
@@ -162,14 +150,7 @@ def inference_server_1_images(session: XMimSession,
 
 @mim_extension_entrypoint(name="InferenceServerGetFromUid",
                           author="Mathis Rasmussen",
-                          description="Get output from InferenceServer by a UID. "
-                                      "The task output is retrieved and contours are loaded."
-                                      "- uid: uid of the task. Returned by a post method"
-                                      "- reference_image: Image onto which the contours should be loaded"
-                                      "- polling_interval_sec: In seconds, how often should the server be polled for"
-                                      " task output."
-                                      "- timeout_sec: Timeout in seconds. If task is not returned within this limit,"
-                                      " the extension terminates",
+                          description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
                           version=1.0)
@@ -183,13 +164,11 @@ def inference_server_get_from_uid(session: XMimSession,
     logger.info("Starting extension InferenceServerGetFromUid")
     try:
         client_backend = ClientBackend(base_url=server_url)
-        uid = inference_server_get(session=session,
-                                   uid=uid,
-                                   reference_image=reference_image,
-                                   timeout_sec=timeout_sec,
-                                   polling_interval_sec=polling_interval_sec,
-                                   client_backend=client_backend)
-        logger.info(f"UID: {uid}")
-        return uid
+        inference_server_get(session=session,
+                             uid=uid,
+                             reference_image=reference_image,
+                             timeout_sec=timeout_sec,
+                             polling_interval_sec=polling_interval_sec,
+                             client_backend=client_backend)
     except:
         logger.error(traceback.format_exc())
