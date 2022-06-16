@@ -1,29 +1,29 @@
 import json
+import logging
+import os
 import secrets
-import shutil
+import sys
 import tempfile
 import unittest
 import zipfile
-import logging
+
 import SimpleITK
-import numpy as np
 import requests
-import os
-import sys
+
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from testing.mock_classes import XMimContour
 from inference_client.inference_client import InferenceClient
 from task_input.test_task_input import TestTaskInput
-from task_input.task_input import TaskInput
 from task_output.task_output import TaskOutput
-
 from client_backend.client_backend_interface import ClientBackendInterface
-from exceptions.exceptions import LastPostFailed
 
 
 class MockClientBackend(ClientBackendInterface):
-    def __init__(self):
+    def __init__(self, base_url):
         self.tasks = []
+        self.base_url = base_url
         self.output_zip = tempfile.TemporaryFile(suffix=".zip")
         with tempfile.TemporaryDirectory() as output_dir:
             # Make a mock labels.json
@@ -31,7 +31,8 @@ class MockClientBackend(ClientBackendInterface):
                 f.write(json.dumps({"1": "GTVt", "2": "GTVn"}))
 
             # Make a mock predictions.nii.gz
-            arr = np.random.randint(0, 2, (256, 256, 50))
+            gtv_img = XMimContour("GTVt")
+            arr = gtv_img.getData().copyToNPArray()
             img = SimpleITK.GetImageFromArray(arr)
             SimpleITK.WriteImage(img, os.path.join(output_dir, "pred.nii.gz"))
 
@@ -60,7 +61,6 @@ class MockClientBackend(ClientBackendInterface):
 
         for task in self.tasks:
             if uid == task["uid"]:
-                print("HIT!")
                 res = requests.Response()
                 res.status_code = 200
                 res._content = self.__get_output_zip().read()
@@ -72,7 +72,6 @@ class MockClientBackend(ClientBackendInterface):
             return res
 
     def post(self, endpoint, params=None, files=None):
-        print(f"posting: {params}")
         tmp_file = tempfile.TemporaryFile()
         tmp_file.write(files["zip_file"].read())
         tmp_file.seek(0)
@@ -89,9 +88,10 @@ class MockClientBackend(ClientBackendInterface):
         res._content = json.dumps(task["uid"])
         return res
 
+
 class TestInferenceClient(unittest.TestCase):
     def setUp(self) -> None:
-        self.client_backend = MockClientBackend()
+        self.client_backend = MockClientBackend(base_url="jadajada")
         self.client = InferenceClient(client_backend=self.client_backend,
                                       polling_interval_sec=1,
                                       timeout_sec=8,
@@ -103,7 +103,6 @@ class TestInferenceClient(unittest.TestCase):
         task_input = test_task_input.test_task_input_no_dicom_info()
 
         uid = self.client.post_task(task_input)
-        print(f"uid: {uid}")
 
         self.assertIsInstance(uid, str)
         return uid
@@ -111,10 +110,10 @@ class TestInferenceClient(unittest.TestCase):
     def test_get_task_intended(self):
         uid = self.test_post_task_intended()
         self.assertIsInstance(uid, str)
-        
+
         task_output = self.client.get_task(uid=uid)
         self.assertIsInstance(task_output, TaskOutput)
-        
+
         return task_output
 
     def test_get_task_TimeoutError(self):

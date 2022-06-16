@@ -1,18 +1,18 @@
 import json
 import os
+import sys
 import tempfile
 import unittest
 import zipfile
 
-import numpy as np
 import SimpleITK as sitk
-import os
-import sys
+import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from task_output.task_output import TaskOutput
 from testing.mock_classes import XMimContour
+
 
 class TestTaskOutput(unittest.TestCase):
     def setUp(self) -> None:
@@ -24,14 +24,13 @@ class TestTaskOutput(unittest.TestCase):
 
             # Make a mock predictions.nii.gz
             gtvt = XMimContour("GTVt")
-            gtvn = XMimContour("GTVn") 
+            gtvn = XMimContour("GTVn")
             tmp_arr = np.zeros_like(gtvt.getData().copyToNPArray())
             tmp_arr[gtvt.getData().copyToNPArray() == True] = 1
             tmp_arr[gtvn.getData().copyToNPArray() == True] = 2
-            
-            print(np.unique(gtvt.getData().copyToNPArray()))
+
             img = sitk.GetImageFromArray(tmp_arr)
-            
+
             sitk.WriteImage(img, os.path.join(output_dir, "predictions.nii.gz"))
 
             # Zip to self.output_zip tempfile
@@ -46,10 +45,10 @@ class TestTaskOutput(unittest.TestCase):
 
     def test_task_output_initialization(self):
         task_output = TaskOutput(output_zip_bytes=self.output_zip.read())
-        self.assertIsNotNone(task_output) 
-        
+        self.assertIsNotNone(task_output)
+
         return task_output
-    
+
     def test_get_output_as_label_array_dict(self):
         task_output = self.test_task_output_initialization()
 
@@ -59,6 +58,7 @@ class TestTaskOutput(unittest.TestCase):
             self.assertEqual(array.dtype, bool)
 
         self.assertFalse(np.array_equal(label_array_dict["GTVt"], label_array_dict["GTVn"]))
+
 
 if __name__ == '__main__':
     unittest.main()
