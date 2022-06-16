@@ -1,13 +1,10 @@
-import json
-import time
-import traceback
+from abc import abstractmethod
 
 from task_input.task_input import TaskInput
 from task_output.task_output import TaskOutput
 
-from abc import abstractmethod
 
-class InferenceClientInterface:    
+class InferenceClientInterface:
     @abstractmethod
     def post_task(self, task: TaskInput) -> str:
         pass

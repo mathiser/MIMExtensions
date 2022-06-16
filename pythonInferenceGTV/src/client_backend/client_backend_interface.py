@@ -1,9 +1,5 @@
-import os
-from typing import Dict
-
-import requests
-from urllib.parse import urljoin
 from abc import abstractmethod
+from typing import Dict
 
 
 class ClientBackendInterface:

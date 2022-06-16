@@ -1,13 +1,12 @@
+import os
+import sys
 import unittest
 import zipfile
 
-import numpy as np
-import os
-import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from .task_input import TaskInput
-from testing.mock_classes import XMimImage, XMimContour
+from testing.mock_classes import XMimImage
 
 
 class TestTaskInput(unittest.TestCase):
@@ -17,25 +16,25 @@ class TestTaskInput(unittest.TestCase):
     def test_task_input_no_dicom_info(self):
         task_input = TaskInput(model_human_readable_id=self.model_human_readable_id,
                                export_dicom_info=False)
-        
+
         task_input.add_image(XMimImage())
         task_input.add_image(XMimImage())
         task_input.add_image(XMimImage())
-        task_input.add_image(XMimImage()) 
-        
+        task_input.add_image(XMimImage())
+
         self.assertIsNotNone(task_input)
-        
+
         return task_input
-    
+
     def test_task_input_with_dicom_info(self):
         task_input = TaskInput(model_human_readable_id=self.model_human_readable_id,
                                export_dicom_info=True)
-        
+
         task_input.add_image(XMimImage())
         task_input.add_image(XMimImage())
         task_input.add_image(XMimImage())
         task_input.add_image(XMimImage())
-        
+
         self.assertIsNotNone(task_input)
         return task_input
 
@@ -48,7 +47,7 @@ class TestTaskInput(unittest.TestCase):
                 for zipinfo in zip.filelist:
                     self.assertIn(zipinfo.filename, expected_names)
                     self.assertGreater(zipinfo.file_size, 0)
-    
+
     def test_get_input_zip_with_dicom(self):
         task_input = self.test_task_input_with_dicom_info()
         with task_input.get_input_zip() as tmp_file:
@@ -61,6 +60,7 @@ class TestTaskInput(unittest.TestCase):
                 for zipinfo in zip.filelist:
                     self.assertIn(zipinfo.filename, expected_names)
                     self.assertGreater(zipinfo.file_size, 0)
+
     def test_get_input_zip_with_dicom_contours(self):
         task_input = TaskInput(model_human_readable_id=self.model_human_readable_id,
                                export_dicom_info=True)
@@ -68,10 +68,10 @@ class TestTaskInput(unittest.TestCase):
         contour_names = ["GTVt", "GTVn"]
         img.createNewContour(contour_names[0])
         img.createNewContour(contour_names[1])
-        
+
         task_input.add_image(img)
         task_input.set_contours_to_export_from_img(img, contour_names=contour_names)
-        
+
         with task_input.get_input_zip() as tmp_file:
             with zipfile.ZipFile(tmp_file, "r", zipfile.ZIP_DEFLATED) as zip:
                 expected_names = [f"tmp_000{i}.nii.gz" for i in range(1)]

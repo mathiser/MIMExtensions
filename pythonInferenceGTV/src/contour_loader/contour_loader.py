@@ -6,7 +6,8 @@ try:
     from MIMPython.SupportedIOTypes import XMimImage, XMimContour
 except ModuleNotFoundError:
     from testing.mock_classes import XMimImage, XMimContour
-    
+
+
 class ContourLoader:
     def __init__(self, reference_image: XMimImage, logger):
         self.ref_image = reference_image
