@@ -64,4 +64,24 @@ When InferenceServerGetFromUid is run and a zip is succesfully received, MIM exp
 Note that ANY_NAME can be anything, as long as the .nii.gz file matches the .json.
 
 
+### Entrypoints - Post images
+Wraps and ships off four images to the inference server. Contours are returned and loaded.
+- img_zero: functions as reference img. Meta information and contours from this will be shipped off.
+- model_human_readable_id: ID of the model. See /api/models/ of your server
+- export_dicom_info: 0 or 1: whether dicom tags should be saved and shipped along
+- export_contours: 0 or 1: whether contours should be shipped along
+- contour_names: ignored if export_contours is 0. If empty, all contours are selected. A list of contours to export can
+ be provided seperated by comma, semicolon and/or white-space
+- server_url: The URL of the inference serve instance. Must start with the appropriate http-prefix
+ e.g. https://omen.onerm.dk
 
+
+### Entrypoints - Get from UID
+Get output from InferenceServer by a UID.
+The task output is retrieved and contours are loaded.
+- uid: uid of the task. Returned by a post method
+- reference_image: Image onto which the contours should be loaded
+- polling_interval_sec: In seconds, how often should the server be polled for task output.
+- timeout_sec: Timeout in seconds. If task is not returned within this limit, the extension terminates
+- server_url: The URL of the inference serve instance. Must start with the appropriate http-prefix
+ e.g. https://omen.onerm.dk

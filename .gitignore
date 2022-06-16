@@ -1,7 +1,5 @@
-!.gitignore
 **/__pycache__/*
 **/.pydev*/**
-**/dist/**
 .pydev*
 .metadata
 common
