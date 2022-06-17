@@ -61,7 +61,32 @@ class TestTaskInput(unittest.TestCase):
                     self.assertIn(zipinfo.filename, expected_names)
                     self.assertGreater(zipinfo.file_size, 0)
 
-    def test_get_input_zip_with_dicom_contours(self):
+    def test_get_input_zip_with_dicom_contours_all(self):
+        task_input = TaskInput(model_human_readable_id=self.model_human_readable_id,
+                               export_dicom_info=True)
+        img = XMimImage()
+        contour_names = ["GTVt", "GTVn"]
+        img.createNewContour(contour_names[0])
+        img.createNewContour(contour_names[1])
+
+        task_input.add_image(img)
+        task_input.set_contours_to_export_from_img(img, contour_names=contour_names)
+
+        with task_input.get_input_zip() as tmp_file:
+            with zipfile.ZipFile(tmp_file, "r", zipfile.ZIP_DEFLATED) as zip:
+                expected_names = [f"tmp_000{i}.nii.gz" for i in range(1)]
+                expected_names.append("meta.json")
+                for i in range(1):
+                    expected_names.append(f"tmp_000{i}.dicom_info.json")
+                for label in ["GTVt", "GTVn"]:
+                    expected_names.append(f"{label}.nii.gz")
+                    expected_names.append(f"{label}.nii.gz.json")
+
+                for zipinfo in zip.filelist:
+                    self.assertIn(zipinfo.filename, expected_names)
+                    self.assertGreater(zipinfo.file_size, 0)
+
+    def test_get_input_zip_with_dicom_contours_selected_contours(self):
         task_input = TaskInput(model_human_readable_id=self.model_human_readable_id,
                                export_dicom_info=True)
         img = XMimImage()

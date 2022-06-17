@@ -4,12 +4,13 @@ import traceback
 
 import os
 import sys
+from http.client import HTTPException
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from task_input.task_input import TaskInput
 from task_output.task_output import TaskOutput
-from exceptions.exceptions import LastPostFailed, InferenceServerError, JobExecError
+from inference_client.exceptions import InferenceServerError, JobExecError
 from client_backend.client_backend_interface import ClientBackendInterface
 from .inference_client_interface import InferenceClientInterface
 
@@ -42,7 +43,7 @@ class InferenceClient(InferenceClientInterface):
                 if res.ok:
                     return str(json.loads(res.content))
                 else:
-                    raise LastPostFailed
+                    raise HTTPException
 
         except Exception as e:
             self.logger.error(traceback.format_exc())

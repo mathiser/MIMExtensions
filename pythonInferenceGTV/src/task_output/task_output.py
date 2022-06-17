@@ -7,6 +7,8 @@ from typing import Dict, Tuple, List
 import SimpleITK as sitk
 import numpy as np
 
+from task_output.exceptions import NiftiNamingError, PredictionLoadError
+
 
 class TaskOutput:
     """
@@ -42,10 +44,15 @@ class TaskOutput:
                 path = os.path.join(fol, file)
                 if path.endswith(".json"):
                     label_dict = self.__load_json(path)
-                    img = sitk.ReadImage(path.replace(".json", ".nii.gz"))
-                    arr = sitk.GetArrayFromImage(img)
-
-                    self.json_nii_list.append((label_dict, arr))
+                    nii_path = path.replace(".json", ".nii.gz")
+                    if not os.path.exists(nii_path):
+                        raise NiftiNamingError
+                    try:
+                        img = sitk.ReadImage(nii_path)
+                        arr = sitk.GetArrayFromImage(img)
+                        self.json_nii_list.append((label_dict, arr))
+                    except Exception as e:
+                        raise PredictionLoadError
 
     def get_output_as_label_array_dict(self) -> Dict[str, np.ndarray]:
         # Generate label_array_dict to return. Represented like {"GTVn_AI": nd.array with dtype bool}

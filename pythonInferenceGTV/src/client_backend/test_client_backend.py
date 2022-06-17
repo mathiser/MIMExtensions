@@ -12,9 +12,17 @@ class TestClientBackend(unittest.TestCase):
         res = self.cb.get("/get")
         self.assertEqual(res.status_code, 200)
 
+    def test_get_error(self):
+        res = self.cb.get("/get-does-not-exist")
+        self.assertEqual(res.status_code, 404)
+
     def test_post(self):
         res = self.cb.post("/post", {}, {})
         self.assertEqual(res.status_code, 200)
+
+    def test_post_error(self):
+        res = self.cb.post("/post-does-not-exist", {}, {})
+        self.assertEqual(res.status_code, 404)
 
 if __name__ == '__main__':
     unittest.main()

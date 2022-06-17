@@ -33,7 +33,22 @@ class TestInfoGenerators(unittest.TestCase):
             self.assertTrue(self.is_serializable(k))
             self.assertTrue(self.is_serializable(v))
 
-    def is_serializable(self, obj):
+    def test_generate_image_meta_information_deleted_test_contour(self):
+        pre_contours = self.img_zero.getContours()
+        meta = generate_image_meta_information(self.img_zero)
+        self.assertIsInstance(meta, dict)
+        self.assertIn("spacing", meta.keys())
+        self.assertIn("scaling_factor", meta.keys())
+        
+        for k, v in meta.items():
+            self.assertTrue(self.is_serializable(k))
+            self.assertTrue(self.is_serializable(v))
+
+        post_contours = self.img_zero.getContours()
+        self.assertEqual(pre_contours, post_contours)
+
+    @staticmethod
+    def is_serializable(obj):
         try:
             json.dumps(obj)
             return True
