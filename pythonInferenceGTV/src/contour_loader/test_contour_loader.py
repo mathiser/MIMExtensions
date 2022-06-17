@@ -26,7 +26,7 @@ class TestContourLoader(unittest.TestCase):
         self.assertIsNotNone(contour_loader)
         return contour_loader
         
-    def test_set_contours_from_label_array_dict(self):
+    def test_set_contours_from_label_array_dict_intended(self):
         """
         Checks if contours from task_out can be set via contour_loader
         """
@@ -34,7 +34,7 @@ class TestContourLoader(unittest.TestCase):
 
         output_test = TestTaskOutput()
         output_test.setUp()
-        self.task_output = output_test.test_task_output_initialization()
+        self.task_output = output_test.test_task_output_initialization_intended()
         output_test.tearDown()
         
         label_array_dict0 = self.task_output.get_output_as_label_array_dict()
@@ -44,7 +44,7 @@ class TestContourLoader(unittest.TestCase):
         # Try with new contours
         output_test = TestTaskOutput()
         output_test.setUp()
-        self.task_output = output_test.test_task_output_initialization()
+        self.task_output = output_test.test_task_output_initialization_intended()
         output_test.tearDown()
         
         label_array_dict1 = self.task_output.get_output_as_label_array_dict()
@@ -52,7 +52,36 @@ class TestContourLoader(unittest.TestCase):
         self.assertEqual(len(contour_loader.ref_image.contours), 2)
         
         for k, v in label_array_dict0.items():
-            self.assertFalse(np.array_equal(v, label_array_dict1[k]))     
-    
+            self.assertFalse(np.array_equal(v, label_array_dict1[k]))
+
+    def test_set_contours_from_label_array_dict_wrong_size(self):
+        """
+        Checks if contours from task_out can be set via contour_loader
+        """
+        contour_loader = self.test_contour_loader_init()
+
+        output_test = TestTaskOutput()
+        output_test.setUp()
+        self.task_output = output_test.test_task_output_initialization_intended()
+        output_test.tearDown()
+
+        label_array_dict0 = self.task_output.get_output_as_label_array_dict()
+        contour_loader.set_contours_from_label_array_dict(label_array_dict0)
+        self.assertEqual(len(contour_loader.ref_image.contours), 2)
+
+        # Try with new contours
+        output_test = TestTaskOutput()
+        output_test.setUp()
+        self.task_output = output_test.test_task_output_initialization_intended()
+        output_test.tearDown()
+
+        label_array_dict1 = self.task_output.get_output_as_label_array_dict()
+        contour_loader.set_contours_from_label_array_dict(label_array_dict0)
+        self.assertEqual(len(contour_loader.ref_image.contours), 2)
+
+        for k, v in label_array_dict0.items():
+            self.assertFalse(np.array_equal(v, label_array_dict1[k]))
+
+
 if __name__ == '__main__':
     unittest.main()
