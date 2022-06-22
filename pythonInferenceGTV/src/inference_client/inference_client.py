@@ -57,7 +57,7 @@ class InferenceClient(InferenceClientInterface):
                 return TaskOutput(res.content)
             elif res.status_code == 500:
                 raise InferenceServerError
-            elif res.status_code == 600:
+            elif res.status_code == 552:
                 raise JobExecError
             else:
                 time.sleep(self.polling_interval_sec)
