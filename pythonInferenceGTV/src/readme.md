@@ -1,4 +1,4 @@
-## Welcome to the MIMExtension to serve the inference server (https://github.com/mathiser/inference_server)
+## Welcome to the MIMExtension to serve the [InferenceSercer](https://github.com/mathiser/inference_server)
 
 This extension is build up as follows:
 ### ext.py
