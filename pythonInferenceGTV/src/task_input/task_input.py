@@ -26,14 +26,6 @@ class TaskInput:
         self.contours: List[XMimContour] = []  # Container for contours to export
         self.meta_information = None  # Meta information on img_zero. Generated when first image is added with add_image()
 
-        self.tmp_files_to_close = []
-
-    def __del__(self):
-        for tmp_file in self.tmp_files_to_close:
-            try:
-                tmp_file.close()
-            except:
-                pass
 
     def add_image(self, image: XMimImage) -> None:
         if len(self.images) == 0:
@@ -113,8 +105,7 @@ class TaskInput:
                 self.__dump_contour(contour, tmp_dir)
 
             # tmp_file is used to make a ZipFile to return
-            tmp_file = tempfile.TemporaryFile()  # This is returned and should be closed manually! (safeguard in next line)
-            self.tmp_files_to_close.append(tmp_file)  # Set for try delete in destructor
+            tmp_file = tempfile.TemporaryFile()  # This is returned and should be closed manually!
             with zipfile.ZipFile(tmp_file, "w") as z:
                 for file in os.listdir(tmp_dir):
                     z.write(os.path.join(tmp_dir, file), arcname=file)
