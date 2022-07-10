@@ -16,6 +16,8 @@ class XMimSession:
 image_dim = [64, 128, 128]
 noxel_size = [3, 1.17, 1.17]
 multiplier = [1, 2, 2]
+iop = [1, 0, 0, 0, 1, 0, 0, 0, 1]
+origin = [-120.000000, 120.000000, 55.000000]
 
 
 class XMimImage:
@@ -24,8 +26,12 @@ class XMimImage:
         self.noxel_size = noxel_size
         self.dimensions = image_dim
 
-        self.data = XMimImageData()
+        self.data = XMimNDArray()
         self.info = XMimImageInfo()
+        self.space = XMimImageSpace()
+
+    def getSpace(self):
+        return self.space
 
     def getRawData(self):
         return self.data
@@ -38,14 +44,32 @@ class XMimImage:
         self.contours.append(contour)
         return contour
 
+    def getScaledData(self):
+        return self.data
+
     def getInfo(self):
         return self.info
 
     def getContours(self):
         return self.contours
 
+class XMimImageSpace:
+    def __init__(self):
+        self.iop = iop
+        self.nox_sixe = noxel_size
+        self.origin = origin
 
-class XMimImageData:
+    def getNoxSize(self):
+        return self.nox_sixe
+
+    def getDicomCenter(self):
+        return self.origin
+
+    def getIop(self):
+        return self.iop
+
+
+class XMimNDArray:
     def __init__(self):
         self.arr = np.random.randint(low=-1000, high=1200, size=image_dim)
 
@@ -80,6 +104,10 @@ class XMimContour:
         self.multiplier = multiplier
         self.data = XMimContourData()
         self.info = XMimContourInfo(self.name)
+        self.space = XMimImageSpace()
+
+    def getSpace(self):
+        return self.space
 
     def getMultiplier(self):
         return self.multiplier

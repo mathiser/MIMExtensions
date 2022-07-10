@@ -42,8 +42,7 @@ class TestTaskInput(unittest.TestCase):
         task_input = self.test_task_input_no_dicom_info()
         with task_input.get_input_zip() as tmp_file:
             with zipfile.ZipFile(tmp_file, "r", zipfile.ZIP_DEFLATED) as zip:
-                expected_names = [f"tmp_000{i}.nii.gz" for i in range(4)]
-                expected_names.append("meta.json")
+                expected_names = generate_expected_files(4, False)
                 for zipinfo in zip.filelist:
                     self.assertIn(zipinfo.filename, expected_names)
                     self.assertGreater(zipinfo.file_size, 0)
@@ -52,10 +51,7 @@ class TestTaskInput(unittest.TestCase):
         task_input = self.test_task_input_with_dicom_info()
         with task_input.get_input_zip() as tmp_file:
             with zipfile.ZipFile(tmp_file, "r", zipfile.ZIP_DEFLATED) as zip:
-                expected_names = [f"tmp_000{i}.nii.gz" for i in range(4)]
-                expected_names.append("meta.json")
-                for i in range(4):
-                    expected_names.append(f"tmp_000{i}.dicom_info.json")
+                expected_names = generate_expected_files(4, True)
 
                 for zipinfo in zip.filelist:
                     self.assertIn(zipinfo.filename, expected_names)
@@ -74,13 +70,10 @@ class TestTaskInput(unittest.TestCase):
 
         with task_input.get_input_zip() as tmp_file:
             with zipfile.ZipFile(tmp_file, "r", zipfile.ZIP_DEFLATED) as zip:
-                expected_names = [f"tmp_000{i}.nii.gz" for i in range(1)]
-                expected_names.append("meta.json")
-                for i in range(1):
-                    expected_names.append(f"tmp_000{i}.dicom_info.json")
+                expected_names = generate_expected_files(1, True)
                 for label in ["GTVt", "GTVn"]:
                     expected_names.append(f"{label}.nii.gz")
-                    expected_names.append(f"{label}.nii.gz.json")
+                    expected_names.append(f"{label}.json")
 
                 for zipinfo in zip.filelist:
                     self.assertIn(zipinfo.filename, expected_names)
@@ -99,13 +92,11 @@ class TestTaskInput(unittest.TestCase):
 
         with task_input.get_input_zip() as tmp_file:
             with zipfile.ZipFile(tmp_file, "r", zipfile.ZIP_DEFLATED) as zip:
-                expected_names = [f"tmp_000{i}.nii.gz" for i in range(1)]
-                expected_names.append("meta.json")
-                for i in range(1):
-                    expected_names.append(f"tmp_000{i}.dicom_info.json")
+                expected_names = generate_expected_files(1, True)
+
                 for label in ["GTVt", "GTVn"]:
                     expected_names.append(f"{label}.nii.gz")
-                    expected_names.append(f"{label}.nii.gz.json")
+                    expected_names.append(f"{label}.json")
 
                 for zipinfo in zip.filelist:
                     self.assertIn(zipinfo.filename, expected_names)
@@ -124,17 +115,24 @@ class TestTaskInput(unittest.TestCase):
 
         with task_input.get_input_zip() as tmp_file:
             with zipfile.ZipFile(tmp_file, "r", zipfile.ZIP_DEFLATED) as zip:
-                expected_names = [f"tmp_000{i}.nii.gz" for i in range(1)]
-                expected_names.append("meta.json")
-                for i in range(1):
-                    expected_names.append(f"tmp_000{i}.dicom_info.json")
+                expected_names = generate_expected_files(1, True)
+
                 for label in ["GTVt.hest.ko", "GTVn.orwhat.sd"]:
                     expected_names.append(f"{label}.nii.gz")
-                    expected_names.append(f"{label}.nii.gz.json")
+                    expected_names.append(f"{label}.json")
 
                 for zipinfo in zip.filelist:
                     self.assertIn(zipinfo.filename, expected_names)
                     self.assertGreater(zipinfo.file_size, 0)
+
+def generate_expected_files(number_of_images: int, dicom: bool):
+    expected_names = []
+    for i in range(number_of_images):
+        expected_names.append(f"tmp_000{i}.nii.gz")
+        expected_names.append(f"tmp_000{i}.meta.json")
+        if dicom:
+            expected_names.append(f"tmp_000{i}.dicom_info.json")
+    return expected_names
 
 if __name__ == '__main__':
     unittest.main()

@@ -16,13 +16,12 @@ except ModuleNotFoundError:  # For Testing
 from client_backend.client_backend import ClientBackend
 from ext_functions.ext_functions import inference_server_post, inference_server_get
 
-
 @mim_extension_entrypoint(name="InferenceServer4images",
                           author="Mathis Rasmussen",
                           description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
-                          version=1.0)
+                          version=1.1)
 def inferenceServer4images(session: XMimSession,
                            img_zero: XMimImage,
                            img_one: XMimImage,
@@ -56,7 +55,7 @@ def inferenceServer4images(session: XMimSession,
                           description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
-                          version=1.0)
+                          version=1.1)
 def inference_server_3_images(session: XMimSession,
                               img_zero: XMimImage,
                               img_one: XMimImage,
@@ -89,7 +88,7 @@ def inference_server_3_images(session: XMimSession,
                           description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
-                          version=1.0)
+                          version=1.1)
 def inference_server_2_images(session: XMimSession,
                               img_zero: XMimImage,
                               img_one: XMimImage,
@@ -122,7 +121,7 @@ def inference_server_2_images(session: XMimSession,
                           description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
-                          version=1.0)
+                          version=1.1)
 def inference_server_1_images(session: XMimSession,
                               img_zero: XMimImage,
                               model_human_readable_id: String,
@@ -153,7 +152,7 @@ def inference_server_1_images(session: XMimSession,
                           description="See https://github.com/mathiser/MIMExtensions/blob/main/pythonInferenceGTV/src/readme.md",
                           category="Inference server model",
                           institution="DCPT",
-                          version=1.0)
+                          version=1.1)
 def inference_server_get_from_uid(session: XMimSession,
                                   uid: String,
                                   reference_image: XMimImage,
