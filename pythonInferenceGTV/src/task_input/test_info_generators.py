@@ -18,6 +18,8 @@ class TestInfoGenerators(unittest.TestCase):
         self.assertIsInstance(meta, dict)
         self.assertIn("spacing", meta.keys())
         self.assertIn("scaling_factor", meta.keys())
+        self.assertIn("origin", meta.keys())
+        self.assertIn("direction", meta.keys())
 
         for k, v in meta.items():
             self.assertTrue(self.is_serializable(k))
@@ -36,9 +38,6 @@ class TestInfoGenerators(unittest.TestCase):
     def test_generate_image_meta_information_deleted_test_contour(self):
         pre_contours = self.img_zero.getContours()
         meta = generate_image_meta_information(self.img_zero)
-        self.assertIsInstance(meta, dict)
-        self.assertIn("spacing", meta.keys())
-        self.assertIn("scaling_factor", meta.keys())
         
         for k, v in meta.items():
             self.assertTrue(self.is_serializable(k))

@@ -28,8 +28,6 @@ class TaskInput:
 
 
     def add_image(self, image: XMimImage) -> None:
-        if len(self.images) == 0:
-            self.meta_information = generate_image_meta_information(image)
         self.images.append(image)
 
     def set_contours_to_export_from_img(self, image: XMimImage, contour_names: List[str] = None):
@@ -47,24 +45,28 @@ class TaskInput:
         meta = generate_meta_for_contour(contour)
         arr = contour.getData().copyToNPArray()
         img = sitk.GetImageFromArray(arr)
+        img.SetOrigin(meta["origin"])
+        img.SetSpacing(meta["spacing"])
+        
         filename = "{}.nii.gz".format(meta["name"])
         filename = re.sub(r'[<>:"/\\?*]', '.', filename)
         path = os.path.join(out_dir, filename)
         sitk.WriteImage(img, path, useCompression=True)
 
-        with open(path + ".json", "w") as f:
+        with open(path.replace(".nii.gz", ".json"), "w") as f:
             f.write(json.dumps(meta))
 
     def __dump_image(self, image: XMimImage, index: int, out_dir):
-        assert self.meta_information  # should be set when first image is added
-
         # To follow nnUNet convention of id_0000.nii.gz, id_0001.nii.gz, etc.
         scan_id = str(10000 + index)[1:]
 
         # Get np array
         arr = image.getRawData().copyToNPArray()
         img = sitk.GetImageFromArray(arr)
-        img.SetSpacing(self.meta_information["spacing"])  # Sets spacing from reference image img_zero
+
+        meta_information = generate_image_meta_information(image)
+        img.SetSpacing(meta_information["spacing"])  # Sets spacing from reference image img_zero
+        img.SetOrigin(meta_information["origin"])
 
         # Make the full path
         path = os.path.join(out_dir, "tmp_{}.nii.gz".format(scan_id))
@@ -72,16 +74,21 @@ class TaskInput:
         # Write image
         sitk.WriteImage(img, path, useCompression=True)  # Dumps to tmp_dir
 
+        # Dump meta
+        with open(os.path.join(out_dir, "tmp_{}.meta.json".format(scan_id)), "w") as f:
+            f.write(json.dumps(meta_information))
+
         # If export dicom_info is set, dump dicom info
         if self.export_dicom_info:
             dicom_info = generate_dicom_meta(image)
+            dicom_info_str = json.dumps(dicom_info)
             with open(os.path.join(out_dir, "tmp_{}.dicom_info.json".format(scan_id)), "w") as f:
-                f.write(json.dumps(dicom_info))
+                f.write(dicom_info_str)
 
-    def __dump_meta(self, out_dir):
-        assert self.meta_information
-        with open(os.path.join(out_dir, "meta.json"), "w") as f:
-            f.write(json.dumps(self.meta_information))
+    # def __dump_meta(self, out_dir):
+    #     assert self.meta_information
+    #     with open(os.path.join(out_dir, "meta.json"), "w") as f:
+    #         f.write(json.dumps(self.meta_information))
 
     def get_input_zip(self) -> tempfile.TemporaryFile:
         """ 
@@ -93,8 +100,8 @@ class TaskInput:
         # Tmp dir to save the task elements - is eventually zipped
         with tempfile.TemporaryDirectory() as tmp_dir:
 
-            # Dump meta information as json to tmp_dir
-            self.__dump_meta(tmp_dir)
+            # # Dump meta information as json to tmp_dir
+            # self.__dump_meta(tmp_dir)
 
             # Dump images as .nii.gz to tmp_array
             for i, image in enumerate(self.images):

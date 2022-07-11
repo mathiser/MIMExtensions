@@ -22,10 +22,12 @@ def generate_image_meta_information(reference_image: XMimImage) -> Dict:
     meta["scaling_factor"] = list(contour.getMultiplier())
     contour.delete()
 
-    # Spacing if images
-    meta["spacing"] = list(reference_image.getNoxelSizeInMm())
-    return meta
+    space = reference_image.getSpace()
+    meta["spacing"] = list(space.getNoxSize())
+    meta["origin"] = list(space.getDicomCenter())
+    meta["direction"] = list(space.getIop())
 
+    return meta
 
 def generate_dicom_meta(reference_image: XMimImage) -> Dict:
     """
@@ -44,5 +46,10 @@ def generate_meta_for_contour(contour: XMimContour) -> Dict:
     d["name"] = contour.getInfo().getName()
     d["dimensions"] = contour.getDims()
     d["multiplier"] = contour.getMultiplier()
+
+    space = contour.getSpace()
+    d["spacing"] = list(space.getNoxSize())
+    d["origin"] = list(space.getDicomCenter())
+    d["direction"] = list(space.getIop())
 
     return d

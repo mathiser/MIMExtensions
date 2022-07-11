@@ -25,7 +25,7 @@ def parse_contour_names(contour_names: str) -> Union[List[str], None]:
         return None  # Will export all contours if export_contours is true
     else:
         # Split on space
-        return re.split(',|;|\s+', contour_names.strip(" "))
+        return re.split(',', contour_names.strip(" "))
 
 
 def inference_server_post(session: XMimSession,
