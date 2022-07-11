@@ -46,10 +46,13 @@ When launching InferenceServerGetFromUid the following variables must be set:
 ### MIM outputs
 TheInferenceServerXimages output:
 - tmp_0000.nii.gz (img_zero)
+- tmp_0000.meta.json (img_zero)
 - tmp_0001.nii.gz (img_one)
+- tmp_0001.meta.json (img_one)
 - tmp_0002.nii.gz (img_two)
+- tmp_0002.meta.json (img_two)
 - tmp_0003.nii.gz (img_three)
-- meta.json (Contains scaling_factor and spacing of img_zero)
+- tmp_0003.meta.json (img_three)
 
 Optionally:
 - tmp_0000.dicom_info.json
